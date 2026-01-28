@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pastebin Lite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 60px auto;
+      background: #ffffff;
+      padding: 32px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 28px;
+      font-size: 14px;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 160px;
+      padding: 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      margin-bottom: 20px;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .row > div {
+      flex: 1;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-bottom: 6px; /* 👈 spacing from hint */
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 0;
+    }
+
+    button {
+      width: 100%;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+
+    #result {
+      margin-top: 20px;
+      word-break: break-all;
+    }
+
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      color: #065f46;
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .error {
+      background: #fef2f2;
+      border: 1px solid #ef4444;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    a {
+      color: #4f46e5;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Pastebin Lite</h1>
+    <div class="subtitle">
+      Create temporary pastes with optional expiry & view limits
+    </div>
+
+    <label for="content">Paste Content *</label>
+    <textarea id="content" placeholder="Write your paste here..."></textarea>
+
+    <div class="row">
+      <div>
+        <label for="ttl">TTL (seconds)</label>
+        <input id="ttl" type="number" min="1" placeholder="e.g. 60" />
+        <div class="hint">Leave empty for no time limit</div>
+      </div>
+
+      <div>
+        <label for="views">Max Views</label>
+        <input id="views" type="number" min="1" placeholder="e.g. 3" />
+        <div class="hint">Leave empty for unlimited views</div>
+      </div>
+    </div>
+
+    <button onclick="createPaste()">Create Paste</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function createPaste() {
+      const content = document.getElementById("content").value.trim();
+      const ttl = document.getElementById("ttl").value;
+      const views = document.getElementById("views").value;
+      const result = document.getElementById("result");
+
+      result.innerHTML = "";
+
+      if (!content) {
+        result.innerHTML =
+          '<div class="error">Content is required.</div>';
+        return;
+      }
+
+      const body = { content };
+      if (ttl) body.ttl_seconds = Number(ttl);
+      if (views) body.max_views = Number(views);
+
+      try {
+        const res = await fetch("/api/pastes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          result.innerHTML =
+            `<div class="error">${data.error || "Something went wrong"}</div>`;
+          return;
+        }
+
+        result.innerHTML = `
+          <div class="success">
+            <strong>Paste created successfully!</strong><br /><br />
+            <a href="${data.url}" target="_blank">${data.url}</a>
+          </div>
+        `;
+      } catch (err) {
+        result.innerHTML =
+          `<div class="error">Network error. Please try again.</div>`;
+      }
+    }
+  </script>
+
+</body>
+</html>
